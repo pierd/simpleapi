@@ -14,19 +14,22 @@ except ImportError:
 
 from simpleapi.message import formatters, wrappers
 from preformat import Preformatter
+from simpleapi.message.common import SAException
 
 __all__ = ('Response', 'ResponseMerger', 'ResponseException', 'UnformattedResponse')
+
 
 class UnformattedResponse(object):
     def __init__(self, content, mimetype="text/html"):
         self.content = content
         self.mimetype = mimetype
 
+
 class ResponseMerger(object):
     def __init__(self, sapi_request, responses):
         self.sapi_request = sapi_request
         self.responses = responses
-    
+
     def build(self):
         if len(self.responses) == 1:
             return self.responses[0].build()
@@ -54,17 +57,21 @@ class ResponseMerger(object):
                 }
             )
 
-class ResponseException(object): pass
+
+class ResponseException(SAException):
+    pass
+
+
 class Response(object):
 
     def __init__(self, sapi_request, namespace=None, output_formatter=None,
-                 wrapper=None, errors=None, result=None, mimetype=None,
+                 wrapper=None, error=None, result=None, mimetype=None,
                  callback=None, function=None):
-        assert isinstance(errors, (basestring, list)) or errors is None
+        assert isinstance(error, SAException) or error is None
 
         self.sapi_request = sapi_request
         self.namespace = namespace
-        self.errors = errors
+        self.error = error
         self.result = self._preformat(result)
         self.mimetype = mimetype
         self.callback = None
@@ -75,18 +82,9 @@ class Response(object):
         self.mimetype = mimetype or self.output_formatter.__mime__
 
         self.session = self.sapi_request.session
-    
-    def has_errors(self):
-        return self.errors is not None
 
-    def add_error(self, errmsg):
-        if self.errors is None:
-            self.errors = [errmsg, ]
-        else:
-            if isinstance(errors, list):
-                self.errors.append(errmsg)
-            elif isinstance(self.errors, basestring):
-                self.errors = [self.errors, errmsg]
+    def has_errors(self):
+        return self.error is not None
 
     def _preformat(self, value):
         if not isinstance(value, UnformattedResponse):
@@ -101,7 +99,7 @@ class Response(object):
             namespace_instance = self.session._internal.namespace['instance']
             if hasattr(namespace_instance, 'after_request'):
                 getattr(namespace_instance, 'after_request')(self, self.session)
-        
+
         # call feature: handle_response
         if self.namespace and not skip_features:
             for feature in self.namespace['features']:
@@ -123,8 +121,12 @@ class Response(object):
                     sapi_request=self.sapi_request
                 )
 
+            if self.error is None:
+                error = None
+            else:
+                error = self.error.get_error_dict()
             wrapper_result = self.wrapper._build(
-                errors=self.errors,
+                error=error,
                 result=self.result,
             )
             formatter_result = self.output_formatter.build(wrapper_result)
@@ -137,7 +139,7 @@ class Response(object):
             return result
         else:
             return self._build_response_obj(self.sapi_request, result)
-    
+
     @staticmethod
     def _build_response_obj(sapi_request, response):
         if sapi_request.route.is_flask():

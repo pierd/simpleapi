@@ -153,7 +153,7 @@ class RouteTest(unittest.TestCase):
 
         return (
             response.get('success'),
-            response.get('errors'),
+            response.get('error'),
             response.get('result')
         )
 
@@ -182,7 +182,7 @@ class RouteTest(unittest.TestCase):
             version='2'
         )
         self.failIf(success)
-        self.failUnlessEqual(u'Authentication failed.', errors[0])
+        self.failUnlessEqual(u'Authentication failed.', errors['message'])
 
         success, errors, result = self.call(
             route=self.route2,
@@ -201,7 +201,7 @@ class RouteTest(unittest.TestCase):
             version='3'
         )
         self.failIf(success)
-        self.failUnlessEqual(u'Authentication failed.', errors[0])
+        self.failUnlessEqual(u'Authentication failed.', errors['message'])
 
         success, errors, result = self.call(
             route=self.route2,
@@ -234,7 +234,7 @@ class RouteTest(unittest.TestCase):
             c=99
         )
         self.failIf(success)
-        self.failUnlessEqual(u'Unused arguments: c', errors[0])
+        self.failUnlessEqual(u'Unused arguments: c', errors['message'])
 
     def test_default_args(self):
         success, errors, result = self.call(
@@ -256,7 +256,7 @@ class RouteTest(unittest.TestCase):
             phone_number='0176123456'
         )
         self.failIf(success)
-        self.failUnlessEqual(u'Constraint failed for argument: phone_number', errors[0])
+        self.failUnlessEqual(u'Constraint failed for argument: phone_number', errors['message'])
 
         success, errors, result = self.call(
             route=self.route1,
@@ -276,7 +276,7 @@ class RouteTest(unittest.TestCase):
             e=100
         )
         self.failIf(success)
-        self.failUnlessEqual(u'Constraint failed for argument: a', errors[0])
+        self.failUnlessEqual(u'Constraint failed for argument: a', errors['message'])
 
         # test: type conversion
         success, errors, result = self.call(
@@ -307,7 +307,7 @@ class RouteTest(unittest.TestCase):
             b='4.5'
         )
         self.failIf(success)
-        self.failUnlessEqual(u'Constraint failed for argument: b', errors[0])
+        self.failUnlessEqual(u'Constraint failed for argument: b', errors['message'])
 
 
     def test_versions(self):
@@ -318,7 +318,7 @@ class RouteTest(unittest.TestCase):
             version='3'
         )
         self.failIf(success)
-        self.failUnless(u'Version 3 not found' in errors[0])
+        self.failUnless(u'Version 3 not found' in errors['message'])
 
         success, errors, result = self.call(
             route=self.route2,

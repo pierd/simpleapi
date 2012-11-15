@@ -4,8 +4,9 @@ from simpleapi.message.common import json
 
 __all__ = ('wrappers', 'Wrapper', 'DefaultWrapper')
 
+
 class WrappersSingleton(object):
-    """This singleton takes care of all registered wrappers. You can easily 
+    """This singleton takes care of all registered wrappers. You can easily
     register your own wrapper for use in both the Namespace and python client.
     """
 
@@ -44,6 +45,7 @@ class WrappersSingleton(object):
 
 wrappers = WrappersSingleton()
 
+
 class Wrapper(object):
     """The baseclass wrapper you can use as a basis for your own wrapper"""
 
@@ -51,14 +53,8 @@ class Wrapper(object):
         self.sapi_request = sapi_request
         self.session = getattr(sapi_request, 'session', None)
 
-    def _build(self, errors, result):
-        if isinstance(errors, basestring):
-            errors = [errors,]
-
-        if errors:
-            assert isinstance(errors, (list, tuple))
-
-        return self.build(errors=errors, result=result)
+    def _build(self, error, result):
+        return self.build(error=error, result=result)
 
     def _parse(self, items):
         return self.parse(items=items)
@@ -66,58 +62,57 @@ class Wrapper(object):
     def parse(self, items):
         raise NotImplementedError
 
-    def build(self, errors, result):
+    def build(self, error, result):
         raise NotImplementedError
+
 
 class DefaultWrapper(Wrapper):
     def parse(self, items):
         return items
 
-    def build(self, errors, result):
+    def build(self, error, result):
         r = {}
-        if errors:
+        if error:
             r['success'] = False
         else:
             r['success'] = True
-        if errors:
-            r['errors'] = errors
+        if error:
+            r['error'] = error
         if result is not None:
             r['result'] = result
         return r
 
+
 class ExtJSWrapper(Wrapper):
     @staticmethod
-    def build_errors(errors):
-        assert isinstance(errors, (basestring, tuple, list))
-        
-        if isinstance(errors, basestring) or \
-            (isinstance(errors, (tuple, list)) and \
-            len(errors) == 1):
+    def build_error(error):
+        assert isinstance(error, (basestring, tuple, list))
+
+        if isinstance(error, basestring) or (isinstance(error, (tuple, list)) and len(error) == 1):
             return {
-                'msg': isinstance(errors, (tuple, list)) and errors[0] or errors
+                'msg': isinstance(error, (tuple, list)) and error[0] or error
             }
-        elif isinstance(errors, (tuple, list)) and \
-            len(errors) > 0:
-            errmsg, errors = errors[0], errors[1]
+        elif isinstance(error, (tuple, list)) and len(error) > 0:
+            errmsg, error = error[0], error[1]
             assert isinstance(errmsg, basestring)
-            assert isinstance(errors, dict)
-            
+            assert isinstance(error, dict)
+
             return {
                 'msg': errmsg,
-                'errors': errors,
+                'error': error,
             }
 
     def parse(self, items):
         return items
 
-    def build(self, errors, result):
+    def build(self, error, result):
         r = {}
-        if errors:
+        if error:
             r['success'] = False
         else:
             r['success'] = True
-        if errors:
-            r.update(self.build_errors(errors))
+        if error:
+            r.update(self.build_error(error))
 
         if result is not None:
             for key, value in self.build_result(result):
@@ -135,7 +130,7 @@ class ExtJSStoreWrapper(ExtJSWrapper):
         yield ('results', len(result))
 
 class ExtJSDirectWrapper(Wrapper):
-    def build(self, errors, result):
+    def build(self, error, result):
         if hasattr(self.session._internal, 'extdirect'):
             db = self.session._internal.extdirect[0]
             self.session._internal.extdirect = \
@@ -150,21 +145,21 @@ class ExtJSDirectWrapper(Wrapper):
                 'method': db['method'],
                 'result': {}
             }
-            
-            if errors:
-                r['result'].update(ExtJSWrapper.build_errors(errors))
+
+            if error:
+                r['result'].update(ExtJSWrapper.build_error(error))
                 r['result']['success'] = False
             else:
                 r['result']['success'] = True
                 r['result']['data'] = result
-            
+
             return r
         else:
-            if errors:
-                errors = ExtJSWrapper.build_errors(errors)
+            if error:
+                error = ExtJSWrapper.build_error(error)
                 return {
                     'type': 'exception',
-                    'message': errors['msg'],
+                    'message': error['msg'],
                     'where': 'n/a'
                 }
             else:
@@ -194,14 +189,14 @@ class ExtJSDirectWrapper(Wrapper):
         else:
             s = self.parse_item(items)
             yield s
-    
+
     def parse_item(self, data):
         if data.has_key('extMethod'):
             # formHandler true
             d = {
                 '_call': data.pop('extMethod', ''),
             }
-            
+
             tid = data.pop('extTID', '')
             action = data.pop('extAction', '')
             method = d['_call']

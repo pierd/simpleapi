@@ -10,9 +10,11 @@ except ImportError:
 
 __all__ = ('json', 'SAException')
 
+
 class SAException(Exception):
-    def __init__(self, msg=None):
+    def __init__(self, msg=None, code=-1):
         super(Exception, self).__init__()
+        self.code = code
         self._message = msg
 
     def _get_message(self):
@@ -25,3 +27,6 @@ class SAException(Exception):
 
     def __repr__(self):
         return self.message
+
+    def get_error_dict(self):
+        return {'code': self.code, 'message': self.message}

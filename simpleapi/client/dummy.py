@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 from simpleapi.message import formatters
 from simpleapi.client import ConnectionException, RemoteException
@@ -10,7 +10,7 @@ TRANSPORT_TYPE = 'json'
 class DummyRequest(object): pass
 class DummyClientException(Exception): pass
 class DummyClient(object):
-    
+
     def __init__(self, route, version='default', access_key=None):
         self.route = route
         self.access_key = access_key
@@ -32,13 +32,13 @@ class DummyClient(object):
                 kwargs[key] = formatter.kwargs(value)
 
             data.update(kwargs)
-            
+
             # Build DummyRequest
             request = DummyRequest()
             request.method = 'POST'
             request.data = data
             request.remote_addr = '127.0.0.1'
-            
+
             # Do request
             response_buffer = self.route(request)
 
@@ -50,7 +50,7 @@ class DummyClient(object):
             if response.get('success'):
                 return response.get('result')
             else:
-                raise RemoteException(". ".join(response.get('errors')))
+                raise RemoteException(**response.get('error'))
 
         return do_call
 

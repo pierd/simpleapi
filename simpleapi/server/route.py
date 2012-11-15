@@ -72,11 +72,11 @@ class Route(object):
                         return self
                     else:
                         return AE_RequestHandler.__getattribute__(self, name)
-                                
+
                 def __call__(self):
                     result = self.router(self.request)
                     self.response.out.write(result['result'])
-            
+
             AppEngineRouter.router = Router(*args, **kwargs)
             return AppEngineRouter
         elif kwargs.get('framework') == 'flask':
@@ -99,7 +99,7 @@ class RouterException(SAException): pass
 class Router(object):
 
     def __init__(self, *namespaces, **kwargs):
-        """Takes at least one namespace. 
+        """Takes at least one namespace.
         """
         self.name = kwargs.pop('name', str(id(self)))
         self.logger = logging.getLogger("simpleapi.%s" % self.name)
@@ -118,7 +118,7 @@ class Router(object):
         assert len(kwargs) == 0, u'Unknown Route configuration(s) (%s)' % \
             ", ".join(kwargs.keys())
 
-        # make shortcut 
+        # make shortcut
         self._caller = self.__call__
 
         assert self.framework in FRAMEWORKS
@@ -135,7 +135,7 @@ class Router(object):
             self.logger.addHandler(handler)
         else:
             self.logger.setLevel(logging.WARNING)
-        
+
         if SIMPLEAPI_DEBUG and SIMPLEAPI_DEBUG_LEVEL == 'all':
             self.profile_start()
 
@@ -143,7 +143,7 @@ class Router(object):
             self.add_namespace(namespace)
 
     def handle_request(self, environ, start_response):
-        if not self.path.match(environ.get('PATH_INFO')): 
+        if not self.path.match(environ.get('PATH_INFO')):
             status = '404 Not found'
             start_response(status, [])
             return ["Entry point not found"]
@@ -174,7 +174,7 @@ class Router(object):
                 query_get[key] = value[0] # respect the first value only
 
             query_post = {}
-            if content_type in ['application/x-www-form-urlencoded', 
+            if content_type in ['application/x-www-form-urlencoded',
                 'application/x-url-encoded']:
                 post_env = environ.copy()
                 post_env['QUERY_STRING'] = ''
@@ -188,9 +188,9 @@ class Router(object):
                     query_post[key] = fs.getvalue(key)
             elif content_type == 'multipart/form-data':
                 # XXX TODO
-                raise NotImplementedError, u'Currently not supported.' 
-            
-            # GET + POST 
+                raise NotImplementedError, u'Currently not supported.'
+
+            # GET + POST
             query_data = query_get
             query_data.update(query_post)
 
@@ -220,7 +220,7 @@ class Router(object):
         assert has_debug
         self.profile = cProfile.Profile()
         self.profile.enable()
-    
+
     def profile_stop(self):
         assert has_debug
         self.profile.disable()
@@ -284,7 +284,7 @@ class Router(object):
             allowed_functions.append('introspect')
 
         # determine public and published functions
-        functions = filter(lambda item: '__' not in item[0] and item[0] not in 
+        functions = filter(lambda item: '__' not in item[0] and item[0] not in
             restricted_functions and ((getattr(item[1], 'published', False) ==
             True) or item[0] in allowed_functions),
             inspect.getmembers(namespace))
@@ -295,7 +295,7 @@ class Router(object):
             # check for reserved function names
             assert function_name not in ['error', '__init__', 'get_name'],\
                 u'Name %s is reserved.' % function_name
-            
+
             # ArgSpec(args=['self', 'a', 'b'], varargs=None, keywords=None, defaults=None)
             raw_args = inspect.getargspec(function_method)
 
@@ -415,7 +415,7 @@ class Router(object):
 
         # configure input formatters
         input_formatters = formatters.copy()
-        allowed_formatters = getattr(namespace, '__input__', 
+        allowed_formatters = getattr(namespace, '__input__',
             formatters.get_defaults())
         input_formatters = filter(lambda i: i[0] in allowed_formatters,
             input_formatters.items())
@@ -565,11 +565,10 @@ class Router(object):
                 # process request
                 try:
                     responses.append(request.process_request(request_item))
-                except (NamespaceException, RequestException, \
-                        ResponseException, RouterException, FeatureException),e:
+                except SAException,e:
                     response = Response(
                         sapi_request,
-                        errors=e.message,
+                        error=e,
                         output_formatter=output_formatter_instance,
                         wrapper=wrapper_instance,
                         mimetype=mimetype
@@ -585,10 +584,10 @@ class Router(object):
             if isinstance(e, (NamespaceException, RequestException, \
                               ResponseException, RouterException, \
                               FeatureException)):
-                err_msg = repr(e)
+                err_msg = e
             else:
-                err_msg = u'An internal error occurred during your request.'
-            
+                err_msg = SAException(u'An internal error occurred during your request.')
+
             trace = inspect.trace()
             msgs = []
             msgs.append('')
@@ -598,7 +597,7 @@ class Router(object):
             msgs.append('')
             msgs.append(u'------- Traceback follows -------')
             for idx, item in enumerate(trace):
-                msgs.append(u"(%s)\t%s:%s (%s)" % 
+                msgs.append(u"(%s)\t%s:%s (%s)" %
                     (idx+1, item[3], item[2], item[1]))
                 if item[4]:
                     for line in item[4]:
@@ -614,7 +613,7 @@ class Router(object):
 
             response = Response(
                 sapi_request,
-                errors=err_msg,
+                error=err_msg,
                 output_formatter=output_formatter_instance,
                 wrapper=wrapper_instance,
                 mimetype=mimetype

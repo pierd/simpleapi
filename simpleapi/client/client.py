@@ -7,12 +7,23 @@ import urllib
 import cPickle
 from simpleapi.message import formatters, wrappers
 
-class ClientException(Exception): pass
-class ConnectionException(ClientException): pass
-class RemoteException(ClientException): pass
+class ClientException(Exception):
+    pass
+
+
+class ConnectionException(ClientException):
+    pass
+
+
+class RemoteException(ClientException):
+    def __init__(self, code, message):
+        self.code = code
+        self.message = message
+
+
 class Client(object):
-    """simpleapi's client library. 
-    
+    """simpleapi's client library.
+
     :param ns: URL of your :class:`~simpleapi.Route`'s endpoint
     :param access_key: string key used for authentication
     :param version: Namespace version to be used (default is highest)
@@ -82,7 +93,7 @@ class Client(object):
             if response.get('success'):
                 return response.get('result')
             else:
-                raise RemoteException(". ".join(response.get('errors')))
+                raise RemoteException(**response.get('error'))
 
         return do_call
 
