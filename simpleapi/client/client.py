@@ -20,6 +20,9 @@ class RemoteException(ClientException):
         self.code = code
         self.message = message
 
+    def __str__(self):
+        return '(%d) %s' % (self.code, self.message)
+
 
 class Client(object):
     """simpleapi's client library.
