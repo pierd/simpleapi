@@ -2,6 +2,7 @@
 
 try:
     from flask import request as flask_request
+    from werkzeug.urls import url_decode
     has_flask = True
 except ImportError:
     has_flask = False
@@ -11,7 +12,7 @@ from session import Session
 __all__ = ('SAPIRequest', )
 
 class SAPIRequest(object):
-    
+
     def __init__(self, route, request=None):
         self.session = Session()
         self.route = route
@@ -42,7 +43,7 @@ class SAPIRequest(object):
     @property
     def POST(self):
         if self.route.is_flask():
-            return self.request.form or self.request.args
+            return self.request.form or self.request.args or url_decode(self.request.data)
         elif self.route.is_django():
             return self.request.POST
         elif self.route.is_appengine():
@@ -54,7 +55,7 @@ class SAPIRequest(object):
     @property
     def REQUEST(self):
         if self.route.is_flask():
-            return self.request.form or self.request.args
+            return self.request.form or self.request.args or url_decode(self.request.data)
         elif self.route.is_django():
             return self.request.REQUEST
         elif self.route.is_appengine():
@@ -68,10 +69,10 @@ class SAPIRequest(object):
     def FILES(self):
         if self.route.is_django():
             return self.request.FILES
-        
+
         # TODO XXX
         # FILES access to other frameworks? flask? GAE?
-        
+
         raise NotImplementedError
 
     @property
@@ -80,7 +81,7 @@ class SAPIRequest(object):
             return self.request.environ
         elif self.route.is_django():
             return self.request.META
-        
+
         raise NotImplementedError
 
     @property
@@ -104,7 +105,7 @@ class SAPIRequest(object):
         elif self.route.is_dummy() or self.route.is_standalone():
             return self.request.method
         raise NotImplementedError
-    
+
     @property
     def path_info(self):
         if self.route.is_flask() or self.route.is_django():
