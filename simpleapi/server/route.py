@@ -60,6 +60,16 @@ from utils import glob_list
 
 __all__ = ('Route', )
 
+
+def should_be_reraised(exc):
+    try:
+        from werkzeug.exceptions import InternalServerError
+        return isinstance(exc, InternalServerError)
+    except ImportError:
+        pass
+    return False
+
+
 class Route(object):
 
     def __new__(cls, *args, **kwargs):
@@ -581,6 +591,8 @@ class Router(object):
             )
             http_response = rm.build()
         except Exception, e:
+            if should_be_reraised(e):
+                raise
             if isinstance(e, (NamespaceException, RequestException, \
                               ResponseException, RouterException, \
                               FeatureException)):
